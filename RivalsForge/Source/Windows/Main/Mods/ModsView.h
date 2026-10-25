@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -21,6 +22,8 @@ struct AddOptions {
     std::wstring name;          // the suggested name ("" = the file's)
     long long nexusId = 0;      // the Nexus Mods mod it is
     std::wstring nexusVersion;
+    long long gameBananaId = 0;     // or the GameBanana mod, and its file
+    long long gameBananaFile = 0;
 };
 
 // MainWindow.xaml's content row and the handlers of MainWindow.xaml.cs behind it: the setup state
@@ -56,6 +59,9 @@ public:
     // GameActions.cpp: start the game (the installation in use), move to another installation
     void PlayGame();
     void SwitchInstallation(const Services::GamePath::Installation& target);
+    // Runs `action` once the game is closed: straight away when it isn't running; otherwise a card
+    // says mods can't change while it's open and offers to close it (`cancelled` if not)
+    void WhenGameClosed(std::function<void()> action, std::function<void()> cancelled = {});
     void OpenModsFolder();
     void OpenPaksFolder();
     // The game's intro videos (Content\Marvel\MoviesBink\Movies\MarvelLogo)
@@ -101,7 +107,12 @@ private:
     // How far a card has come in (0..1) and gone (0..1) at `now`
     static float Appear(double shownAt, double now);
     static float Leave(double hiddenAt, double now);
-    // ModsAdd.cpp: the steps of adding ZIPs (see there)
+    // ModsActions.cpp: ToggleMod once the game is closed
+    void DoToggle(const std::wstring& modId);
+    // GameActions.cpp: ends the game's processes (on a worker), then `then`
+    void CloseGame(std::function<void()> then);
+    // ModsAdd.cpp: the steps of adding ZIPs (see there), once the game is closed
+    void StartAdd(const std::vector<std::wstring>& files, const AddOptions& options);
     void AnalyzeNext(std::shared_ptr<AddJob> job);
     void AskName(std::shared_ptr<AddJob> job);
     void BuildNext(std::shared_ptr<AddJob> job);

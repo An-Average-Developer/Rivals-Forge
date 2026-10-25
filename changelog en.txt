@@ -1,11 +1,11 @@
-1.0.0
+1.0.1
 ## Additions
-Nexus Store: browse, search and install Marvel Rivals mods from Nexus Mods without leaving the manager
-Heroes: mods are grouped by hero, with a strip on top to show one hero's mods
-Steam and Epic Games: every installation is found and you can move your mods between them
-Play: launch the game from the header
-UTOC Signature Bypass Patch: the header shows whether it's installed and helps you install it
-Themes: switch between the dark and the light theme with the sun / moon button in the header
-Updates: the manager checks GitHub at startup and installs new versions by itself
-Changelog: every version and its changes, inside the manager
-Languages: English, Spanish, French and Italian
+GameBanana: browse, search and install Marvel Rivals mods from GameBanana too, no account needed
+Old mods: mods packed for an older version of the game get a red OLD tag, so you can tell which ones the game's updates stopped loading
+Game open: installing, enabling or deleting a mod while Marvel Rivals is running offers to close the game first, then carries on by itself
+
+## Redesigns
+Mod Store: the Nexus Store is now the Mod Store, and its header lets you choose between Nexus Mods and GameBanana (your choice is remembered)
+
+## Improvements
+Files in use: the error now says which file is busy and reminds you to close Marvel Rivals if it's open

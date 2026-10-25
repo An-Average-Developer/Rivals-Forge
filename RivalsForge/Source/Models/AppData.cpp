@@ -62,6 +62,11 @@ std::optional<Mod> ReadMod(const Json::Value& obj) {
         mod.nexusId = obj["NexusModId"].Int();
         mod.nexusVersion = obj["NexusVersion"].WStr();
     }
+    if (obj.Has("GameBananaModId")) {
+        if (!obj["GameBananaModId"].IsNumber()) return std::nullopt;
+        mod.gameBananaId = obj["GameBananaModId"].Int();
+        mod.gameBananaFile = obj["GameBananaFileId"].Int();
+    }
     if (obj.Has("Target")) {
         if (!obj["Target"].IsString()) return std::nullopt;
         mod.target = obj["Target"].WStr();
@@ -119,6 +124,10 @@ Json::Value WriteMod(const Mod& mod) {
     if (mod.nexusId != 0) {
         v.Set("NexusModId", mod.nexusId);
         v.Set("NexusVersion", mod.nexusVersion);
+    }
+    if (mod.gameBananaId != 0) {
+        v.Set("GameBananaModId", mod.gameBananaId);
+        v.Set("GameBananaFileId", mod.gameBananaFile);
     }
     if (!mod.target.empty()) {
         v.Set("Target", mod.target);

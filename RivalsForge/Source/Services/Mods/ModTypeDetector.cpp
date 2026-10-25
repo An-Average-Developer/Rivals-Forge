@@ -1,5 +1,7 @@
 #include "Services/Mods/ModTypeDetector.h"
+#include <algorithm>
 #include <memory>
+#include <vector>
 #include "Core/Text.h"
 #include "Core/Zip.h"
 
@@ -9,6 +11,8 @@ namespace {
 
 // A .pak of an old-style mod is scanned up to this size (its index, with the paths, is at the end)
 constexpr uint64_t kMaxPakScan = 256ull << 20;
+// The .pak beside a .utoc is only an index and a footer: a few hundred bytes, a handful of KB at most
+constexpr uint64_t kMaxStubPak = 64ull << 10;
 
 bool Starts(const std::string& s, const char* prefix) { return s.rfind(prefix, 0) == 0; }
 bool Has(const std::string& s, const char* part) { return s.find(part) != std::string::npos; }
@@ -85,6 +89,20 @@ private:
     uint32_t last = 0, prefix = 0;
 };
 
+// Whether the .pak of an IoStore mod is packed the old way: its footer (the magic E1 12 6F 5A, the
+// version, then the index offset as 8 bytes) puts the index after some entry data, where the
+// current packing has nothing but the index, at 0. False when no footer can be found.
+bool OldStylePak(const std::vector<uint8_t>& pak) {
+    constexpr uint8_t kMagic[] = { 0xE1, 0x12, 0x6F, 0x5A };
+    for (size_t i = pak.size() >= 16 ? pak.size() - 15 : 0; i-- > 0;) {
+        if (!std::equal(std::begin(kMagic), std::end(kMagic), pak.begin() + static_cast<std::ptrdiff_t>(i))) continue;
+        uint64_t indexOffset = 0;
+        for (int b = 7; b >= 0; --b) indexOffset = indexOffset << 8 | pak[i + 8 + static_cast<size_t>(b)];
+        return indexOffset != 0;
+    }
+    return false;
+}
+
 } // namespace
 
 unsigned Detect(const std::wstring& zipPath) {
@@ -109,9 +127,22 @@ unsigned Detect(const std::wstring& zipPath) {
         sawToc = true;
         scan(entry);
     }
-    if (!sawToc)
+    if (!sawToc) {
         for (const auto& entry : archive->Entries())
             if (Text::EndsWith(entry.name, L".pak", true) && entry.length <= kMaxPakScan) scan(entry);
+        return scanner.types;
+    }
+    // An IoStore mod: its .pak says how it was packed
+    for (const auto& entry : archive->Entries()) {
+        if (!Text::EndsWith(entry.name, L".pak", true) || entry.length > kMaxStubPak) continue;
+        std::vector<uint8_t> pak;
+        pak.reserve(static_cast<size_t>(entry.length));
+        archive->ReadEntry(entry, [&](const uint8_t* data, size_t size) {
+            pak.insert(pak.end(), data, data + size);
+            return true;
+        });
+        if (OldStylePak(pak)) scanner.types |= Outdated;
+    }
     return scanner.types;
 }
 

@@ -69,4 +69,4 @@ inline constexpr EmbeddedAsset kEmbeddedAssets[] = {
     { 1062, L"Translations", L"fr.txt" },
     { 1063, L"Translations", L"it.txt" },
 };
-inline constexpr const wchar_t* kEmbeddedAssetsStamp = L"56DC6C8CEE575AE3";
+inline constexpr const wchar_t* kEmbeddedAssetsStamp = L"42676EAD2F05F6BF";

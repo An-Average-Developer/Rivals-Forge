@@ -1,11 +1,11 @@
-1.0.0
+1.0.1
 ## Novedades
-Tienda Nexus: explora, busca e instala mods de Marvel Rivals desde Nexus Mods sin salir del gestor
-Héroes: los mods se agrupan por héroe, con una tira arriba para ver solo los mods de uno
-Steam y Epic Games: se detectan todas las instalaciones y puedes mover tus mods entre ellas
-Jugar: abre el juego desde la cabecera
-UTOC Signature Bypass Patch: la cabecera muestra si está instalado y te ayuda a instalarlo
-Temas: cambia entre el tema oscuro y el claro con el botón del sol / la luna de la cabecera
-Actualizaciones: el gestor comprueba GitHub al abrirse e instala las nuevas versiones solo
-Registro de cambios: todas las versiones y sus cambios, dentro del gestor
-Idiomas: inglés, español, francés e italiano
+GameBanana: explora, busca e instala mods de Marvel Rivals también desde GameBanana, sin necesidad de cuenta
+Mods antiguos: los mods empaquetados para una versión anterior del juego llevan una etiqueta roja OLD, para que sepas cuáles han dejado de cargar con las actualizaciones del juego
+Juego abierto: si instalas, activas o borras un mod con Marvel Rivals abierto, se ofrece cerrar el juego primero y luego se continúa solo
+
+## Rediseños
+Tienda de mods: la Tienda Nexus ahora es la Tienda de mods, y su cabecera te deja elegir entre Nexus Mods y GameBanana (se recuerda tu elección)
+
+## Mejoras
+Archivos en uso: el error ahora dice qué archivo está ocupado y te recuerda cerrar Marvel Rivals si está abierto

@@ -9,7 +9,7 @@ namespace RivalsForge::Main {
 // A store mod's card: its picture as a banner with the name, author, version and category over it;
 // its numbers and description on the left; its files on the right, each with Install (and
 // "Installed" for the version already here), what the account means for downloading on top of
-// them; "View on Nexus" and Close at the foot. The details load when it opens.
+// them; "View on Nexus" / "View on GameBanana" and Close at the foot. The details load when it opens.
 class StoreModOverlay : public CardOverlay {
 public:
     using CardOverlay::CardOverlay;

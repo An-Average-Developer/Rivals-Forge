@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -27,6 +28,9 @@ Installation Describe(const std::wstring& paks, const std::vector<Installation>&
 std::wstring StoreName(const Installation& installation);
 // Starts the game from the installation's launcher; false (and `error`) when it can't
 bool Launch(const Installation& installation, std::wstring& error);
+// The game's processes running now (the client, its launcher, anything started from an
+// installation's folder): while there are any, its files in Paks are locked
+std::vector<uint32_t> RunningProcesses(const std::vector<Installation>& installations);
 
 // Given a folder the user browsed to, resolves the Paks directory. Accepts the Paks folder itself,
 // MarvelGame, MarvelRivals, Content or Marvel (checked in that order).

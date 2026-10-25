@@ -1,10 +1,7 @@
 #include "Services/Store/Nexus.h"
 #include <algorithm>
-#include "App/Paths.h"
-#include "Core/Files.h"
 #include "Core/Http.h"
 #include "Core/Json.h"
-#include "Core/System.h"
 #include "Core/Text.h"
 #include "Localization/Localization.h"
 #include "Services/App/Log.h"
@@ -87,73 +84,7 @@ Json::Value NameFilter(const std::wstring& text) {
     return filter;
 }
 
-// BBCode and the <br /> Nexus mixes into it, to plain text: tags out, links kept as their text,
-// list items as "•", at most one empty line in a row
-std::wstring PlainText(std::wstring text) {
-    std::wstring out;
-    out.reserve(text.size());
-    for (size_t i = 0; i < text.size();) {
-        const wchar_t c = text[i];
-        if (c == L'<') {
-            const size_t end = text.find(L'>', i);
-            if (end == std::wstring::npos) break;
-            const std::wstring tag = Text::Lower(text.substr(i + 1, end - i - 1));
-            if (Text::StartsWith(tag, L"br") || tag == L"p" || tag == L"/p") out += L'\n';
-            i = end + 1;
-            continue;
-        }
-        if (c == L'[') {
-            const size_t end = text.find(L']', i);
-            if (end != std::wstring::npos && end - i < 80) {
-                const std::wstring tag = Text::Lower(text.substr(i + 1, end - i - 1));
-                if (tag == L"*") out += L"\n• ";
-                else if (tag == L"/list" || tag == L"/center" || tag == L"/quote" || Text::StartsWith(tag, L"list")) out += L'\n';
-                else if (Text::StartsWith(tag, L"img") || Text::StartsWith(tag, L"youtube")) {
-                    // The picture's / video's address isn't text
-                    const size_t close = text.find(L"[/" + tag.substr(0, Text::StartsWith(tag, L"img") ? 3 : 7), end);
-                    if (close != std::wstring::npos) {
-                        i = text.find(L']', close) + 1;
-                        continue;
-                    }
-                }
-                i = end + 1;
-                continue;
-            }
-        }
-        if (c == L'&') {
-            static const std::pair<const wchar_t*, wchar_t> entities[] = { { L"&amp;", L'&' }, { L"&lt;", L'<' }, { L"&gt;", L'>' },
-                                                                           { L"&quot;", L'"' }, { L"&#39;", L'\'' }, { L"&nbsp;", L' ' } };
-            bool replaced = false;
-            for (const auto& [entity, character] : entities)
-                if (text.compare(i, wcslen(entity), entity) == 0) {
-                    out += character;
-                    i += wcslen(entity);
-                    replaced = true;
-                    break;
-                }
-            if (replaced) continue;
-        }
-        if (c != L'\r' && c != L'﻿') out += c;
-        ++i;
-    }
-    // Lines trimmed, runs of empty lines down to one
-    std::wstring result;
-    int empty = 0;
-    for (const auto& line : Text::Split(out, L'\n', false)) {
-        const std::wstring trimmed = Text::TrimDotNet(line);
-        if (trimmed.empty()) {
-            if (++empty > 1 || result.empty()) continue;
-        } else {
-            empty = 0;
-        }
-        result += trimmed + L"\n";
-    }
-    return Text::TrimDotNet(result);
-}
-
 } // namespace
-
-std::wstring StoreMod::PageUrl() const { return L"https://www.nexusmods.com/" + std::wstring(kGameDomain) + L"/mods/" + std::to_wstring(id); }
 
 Page FetchPage(int page, int perPage, Sort sort, const std::wstring& search, const std::wstring& hero) {
     Json::Value game = Json::Value::MakeObject();
@@ -231,17 +162,6 @@ ModDetails FetchDetails(long long modId) {
     return details;
 }
 
-std::string FetchImage(const std::wstring& url) {
-    const std::wstring cache = Files::Combine(Paths::DataDir(), L"StoreCache");
-    const std::wstring path = Files::Combine(cache, Text::Widen(System::Sha256Hex(Text::Narrow(url)).substr(0, 32)) + L".img");
-    if (auto bytes = Files::ReadBytes(path)) return *bytes;
-    const Http::Response response = Http::Get(url, {}, 20000);
-    if (!response.Ok()) throw Error(Failure(response));
-    Files::CreateDirectories(cache);
-    Files::WriteBytes(path, response.body);
-    return response.body;
-}
-
 Account Validate(const std::wstring& apiKey) {
     const Json::Value v = Rest(L"/users/validate.json", apiKey);
     Account account;
@@ -258,18 +178,6 @@ std::wstring DownloadLink(const std::wstring& apiKey, long long modId, long long
     const Json::Value links = Rest(path, apiKey);
     if (links.Size() == 0 || links[size_t{0}]["URI"].WStr().empty()) throw Error(Loc::Get("store_error_no_link"));
     return links[size_t{0}]["URI"].WStr();
-}
-
-void Download(const std::wstring& url, const std::wstring& path, const std::function<void(uint64_t, uint64_t)>& progress) {
-    std::wstring error;
-    const bool ok = Http::Download(
-        url, path,
-        [&](uint64_t received, uint64_t total) {
-            if (progress) progress(received, total);
-            return true;
-        },
-        &error);
-    if (!ok) throw Error(Loc::Fmt("store_error_download", error));
 }
 
 } // namespace RivalsForge::Services::Store

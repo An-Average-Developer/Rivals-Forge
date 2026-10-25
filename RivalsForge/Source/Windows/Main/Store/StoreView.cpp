@@ -10,7 +10,9 @@
 #include "Data/Heroes.h"
 #include "Localization/Localization.h"
 #include "Services/App/Log.h"
+#include "Services/Store/GameBanana.h"
 #include "Services/Store/NexusAccount.h"
+#include "Settings/ConfigFile.h"
 #include "Windows/Dialogs/MessageDialog.h"
 #include "Windows/Main/MainWindow.h"
 #include "Windows/Main/Mods/ModsView.h"
@@ -28,6 +30,7 @@ using Dialogs::MessageResult;
 
 constexpr int kPerPage = 24;
 constexpr double kSearchDelay = 0.5;   // seconds of quiet typing before the search runs
+constexpr const wchar_t* kStoreFile = L"store.cfg";   // the store chosen: "nexus" / "gamebanana"
 
 // The file name at the end of a download address ("…/Y2K%20Mantis-1233.zip?md5=…" -> "Y2K Mantis-1233.zip")
 std::wstring FileNameOf(const std::wstring& url) {
@@ -51,6 +54,7 @@ std::wstring FileNameOf(const std::wstring& url) {
 } // namespace
 
 StoreView::StoreView(MainWindow& window) : main(window), state(window.State()) {
+    if (Config::ReadText(kStoreFile).value_or(L"") == L"gamebanana") source = Store::Source::GameBanana;
     account.key = NexusAccount::LoadKey();
     if (!account.key.empty()) CheckKey();
 }
@@ -75,10 +79,20 @@ std::wstring StoreView::Number(long long n, bool shorten) {
 
 bool StoreView::Busy() const { return state.busy || downloadingId != 0; }
 
-const Models::Mod* StoreView::Installed(long long id) const {
+const Models::Mod* StoreView::Installed(const StoreMod& storeMod) const {
+    const bool banana = storeMod.source == Store::Source::GameBanana;
     for (const auto& mod : state.Service().Mods())
-        if (mod.nexusId == id) return &mod;
+        if ((banana ? mod.gameBananaId : mod.nexusId) == storeMod.id) return &mod;
     return nullptr;
+}
+
+void StoreView::SetSource(Store::Source to) {
+    if (to == source) return;
+    source = to;
+    Config::WriteText(kStoreFile, to == Store::Source::GameBanana ? L"gamebanana" : L"nexus");
+    mods.clear();
+    total = 0;
+    Load(false);
 }
 
 // ── The list ────────────────────────────────────────────────────────────────
@@ -94,8 +108,9 @@ void StoreView::Load(bool more) {
         std::optional<std::wstring> error;
     };
     Async::Run(
-        [page, sort = sort, search = appliedSearch, heroName = filterHero ? filterHero->name : std::wstring()]() -> Result {
+        [page, from = source, sort = sort, search = appliedSearch, heroName = filterHero ? filterHero->name : std::wstring()]() -> Result {
             try {
+                if (from == Store::Source::GameBanana) return { Store::GameBanana::FetchPage(page, kPerPage, sort, search, heroName), std::nullopt };
                 return { Store::FetchPage(page, kPerPage, sort, search, heroName), std::nullopt };
             } catch (const Store::Error& e) {
                 return { {}, e.Message() };
@@ -112,10 +127,14 @@ void StoreView::Load(bool more) {
             }
             if (!more) {
                 mods.clear();
+                skipped = 0;
                 listShownAt = -1.0;   // the cards come in again
             }
             for (auto& mod : result.page.mods) mods.push_back(std::move(mod));
-            total = result.page.total;
+            skipped += result.page.skipped;
+            total = std::max<long long>(static_cast<long long>(mods.size()), result.page.total - skipped);
+            // A page with nothing new: there's no more, whatever the count said
+            if (more && result.page.mods.empty() && result.page.skipped == 0) total = static_cast<long long>(mods.size());
             pagesLoaded = page + 1;
         });
 }
@@ -195,6 +214,11 @@ void StoreView::SetKey(const std::wstring& key) {
 
 void StoreView::Install(const StoreMod& mod, const ModFile& file) {
     if (Busy()) return;
+    if (mod.source == Store::Source::GameBanana) {
+        // GameBanana's files are just there to download
+        Download(mod, file, L"", L"");
+        return;
+    }
     if (account.key.empty() || (!account.info && !account.checking)) {
         // Downloading needs the account: its card says why and how
         main.StoreAccount().Show(true);
@@ -292,8 +316,11 @@ void StoreView::Download(const StoreMod& mod, const ModFile& file, const std::ws
             Result result;
             result.folder = Files::Combine(Files::TempDirectory(), L"RF-" + System::NewGuid());
             try {
-                const std::wstring link = Store::DownloadLink(key, mod.id, file.id, nxmKey, expires);
-                std::wstring name = FileNameOf(link);
+                const bool banana = mod.source == Store::Source::GameBanana;
+                if (banana && file.downloadUrl.empty()) throw Store::Error(Loc::Get("store_gb_error_no_link"));
+                const std::wstring link = banana ? file.downloadUrl : Store::DownloadLink(key, mod.id, file.id, nxmKey, expires);
+                // GameBanana's address ends in the file's id, not its name
+                std::wstring name = banana ? FileNameOf(file.fileName) : FileNameOf(link);
                 if (name.empty()) name = file.fileName.empty() ? L"mod.zip" : file.fileName;
                 result.path = Files::Combine(result.folder, name);
                 Files::CreateDirectories(result.folder);
@@ -327,8 +354,13 @@ void StoreView::Download(const StoreMod& mod, const ModFile& file, const std::ws
             options.downloaded = true;
             options.folder = result.folder;
             options.name = mod.name;
-            options.nexusId = mod.id;
-            options.nexusVersion = file.version.empty() ? mod.version : file.version;
+            if (mod.source == Store::Source::GameBanana) {
+                options.gameBananaId = mod.id;
+                options.gameBananaFile = file.id;
+            } else {
+                options.nexusId = mod.id;
+                options.nexusVersion = file.version.empty() ? mod.version : file.version;
+            }
             main.Mods().AddFiles({ result.path }, options);
         });
 }

@@ -34,8 +34,10 @@ void StoreView::Card(UI::Ui& ui, const Rect& r, size_t index) {
     const UI::Interaction it = ui.Interact(id, r);
     if (it.hovered) ui.SetCursor(IDC_HAND);
     const M::Motion::Feedback fb = M::Motion::Hover(ui, id, it.hovered, it.held);
-    const Models::Mod* installed = Installed(mod.id);
-    const bool update = installed && !mod.version.empty() && !installed->nexusVersion.empty() && installed->nexusVersion != mod.version;
+    const Models::Mod* installed = Installed(mod);
+    // GameBanana's files have no version to compare: only Nexus mods say "Update"
+    const bool update = installed && mod.source == Services::Store::Source::Nexus && !mod.version.empty() && !installed->nexusVersion.empty() &&
+                        installed->nexusVersion != mod.version;
 
     ui.PushTranslate(0.f, -4.f * fb.hover + 1.5f * fb.press);
     if (fb.hover > 0.f) ui.g.GlowRound(r, 4.f, Kit::Palette::Accent, 16.f, 0.35f * Kit::GlowStrength() * fb.hover);
@@ -58,7 +60,7 @@ void StoreView::Card(UI::Ui& ui, const Rect& r, size_t index) {
         TextStyle mark = Kit::Display(mod.adult ? 28.f : 14.f, DWRITE_FONT_WEIGHT_BOLD);
         mark.align = HAlign::Center;
         mark.valign = VAlign::Center;
-        ui.g.Text(mod.adult ? L"18+" : L"NEXUS", pic, Kit::Palette::TextFaint, mark);
+        ui.g.Text(mod.adult ? L"18+" : Kit::Upper(Services::Store::SourceName(mod.source)), pic, Kit::Palette::TextFaint, mark);
     }
     ui.g.FillLinear(pic, 0.f, { { 0.55f, Colors::Black.Fade(0.f) }, { 1.f, Kit::Palette::Panel.Fade(0.9f) } }, { 0.f, 0.f }, { 0.f, 1.f });
     const float sweep = ui.Tween(UI::HashId(id, 0x5EE), it.hovered ? 1.f : 0.f, 0.5f);
@@ -104,7 +106,9 @@ void StoreView::Card(UI::Ui& ui, const Rect& r, size_t index) {
         x += 16.f + w + 14.f;
     };
     stat(Kit::Glyph::Heart, Kit::Palette::Accent, Number(mod.endorsements, true));
-    stat(Kit::Glyph::Download, Kit::Palette::Info, Number(mod.downloads, true));
+    // GameBanana's list has no downloads, only views
+    if (mod.source == Services::Store::Source::GameBanana) stat(Kit::Glyph::Eye, Kit::Palette::Info, Number(mod.views, true));
+    else stat(Kit::Glyph::Download, Kit::Palette::Info, Number(mod.downloads, true));
 
     // Being downloaded: a bar along the foot
     if (downloadingId == mod.id) {

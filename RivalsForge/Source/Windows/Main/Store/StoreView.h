@@ -13,14 +13,15 @@ namespace RivalsForge::Main {
 class MainWindow;
 class MainState;
 
-// The store (new): Marvel Rivals' mods on Nexus Mods. A toolbar (search, the order, a hero filter),
+// The Mod Store (new): Marvel Rivals' mods on Nexus Mods or on GameBanana (the header chooses the
+// store, kept in store.cfg). A toolbar (search, the order, a hero filter),
 // the mods as cards in a grid (picture, name, author, endorsements / downloads, "Installed" /
 // "Update" for the ones already here) loading more as asked, and a mod's card with its description
 // and files. Installing a file downloads it and hands it to the Mod Manager's own way of adding
 // mods (ModsView::AddFiles): the same name card, the same splitting, the same installation.
-// Downloading needs the user's Nexus API key (StoreAccount): a Premium account downloads straight
-// away; a free one through the site's "Mod Manager Download" button and the nxm:// link it opens
-// (HandleNxm). Split:
+// Downloading from Nexus needs the user's Nexus API key (StoreAccount): a Premium account downloads
+// straight away; a free one through the site's "Mod Manager Download" button and the nxm:// link it
+// opens (HandleNxm). GameBanana's files download straight away, with no account. Split:
 //   StoreView.cpp     state, requests, pictures, downloads, nxm:// links
 //   StoreToolbar.cpp  the search, the order, the hero filter
 //   StoreGrid.cpp     the grid, its cards, "Load more", the empty / loading / error states
@@ -32,14 +33,19 @@ public:
     explicit StoreView(MainWindow& window);
     void Draw(UI::Ui& ui, const Rect& content);
 
-    // Install a file of a mod (the mod's card): straight away with Premium, through the site otherwise
+    // The store being browsed; choosing another loads its mods (and is remembered)
+    Services::Store::Source GetSource() const { return source; }
+    void SetSource(Services::Store::Source to);
+
+    // Install a file of a mod (the mod's card): straight away with Premium or from GameBanana,
+    // through the Nexus site otherwise
     void Install(const StoreMod& mod, const ModFile& file);
     // An nxm:// link from the site (a second launch of the app hands it here)
     void HandleNxm(const std::wstring& url);
     // The picture at `url`, decoded on a worker; nullptr until it's here
     ImagePtr Picture(const std::wstring& url, unsigned maxSide);
-    // The installed mod from Nexus mod `id`, or nullptr
-    const Models::Mod* Installed(long long id) const;
+    // The installed mod from that store mod, or nullptr
+    const Models::Mod* Installed(const StoreMod& mod) const;
 
     // ── The account (StoreAccount) ──
     struct Account {
@@ -74,8 +80,10 @@ private:
     MainState& state;
 
     // The list
+    Services::Store::Source source = Services::Store::Source::Nexus;
     std::vector<StoreMod> mods;
     long long total = 0;
+    long long skipped = 0;   // the adult mods the pages loaded so far left out (total counts them)
     int pagesLoaded = 0;
     Services::Store::Sort sort = Services::Store::Sort::Popular;
     std::wstring search, appliedSearch, hero;   // hero: an id of Data\Heroes ("" = all)

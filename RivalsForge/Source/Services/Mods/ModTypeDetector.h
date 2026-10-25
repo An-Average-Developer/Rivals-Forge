@@ -17,11 +17,16 @@ enum Type : unsigned {
     Audio = 1u << 5,
     UI = 1u << 6,
     Video = 1u << 7,   // Bink movies (.bk2): the intro videos and the like
+    // Not a kind: the IoStore mod was packed the old way, which the game's updates have stopped
+    // loading. Mods packed for the current game have a .pak that is just its index (the index at
+    // offset 0); the old ones carry an entry in it before the index.
+    Outdated = 1u << 8,
 };
 inline constexpr unsigned kAllTypes[] = { Mesh, Texture, Material, Animation, VFX, Audio, UI, Video };
 
 // The kinds found (0 when none could be told, or the archive can't be read). Reads the .utoc
-// entries; an old-style mod with only a .pak has that scanned instead. Any thread.
+// entries; an old-style mod with only a .pak has that scanned instead. Adds Outdated when an
+// IoStore mod's .pak is packed the old way. Any thread.
 unsigned Detect(const std::wstring& zipPath);
 
 } // namespace RivalsForge::Services::Mods::ModTypeDetector

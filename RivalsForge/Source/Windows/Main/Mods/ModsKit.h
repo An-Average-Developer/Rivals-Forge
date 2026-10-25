@@ -116,7 +116,7 @@ float ButtonHeight(UI::Ui& ui, const ButtonStyle& style);
 bool Button(UI::Ui& ui, UI::Id id, const Rect& r, const std::wstring& text, const ButtonStyle& style, bool enabled = true);
 
 // ── Icons (drawn with lines, in `color`, `size` DIPs, centred) ──
-enum class Glyph { Plus, Pencil, Trash, Person, Folder, Warning, Check, Box, Heart, Download, Search, External, Play };
+enum class Glyph { Plus, Pencil, Trash, Person, Folder, Warning, Check, Box, Heart, Download, Search, External, Play, Eye };
 void DrawGlyph(UI::Ui& ui, Glyph glyph, float cx, float cy, float size, Color color);
 // A small slanted button with an icon (and a tooltip); `hover` is the icon's colour when hovered
 bool IconButton(UI::Ui& ui, UI::Id id, const Rect& r, Glyph glyph, Color hover, const std::wstring& tooltip, bool enabled = true);

@@ -1,3 +1,15 @@
+1.0.1
+## Additions
+- GameBanana: browse, search and install Marvel Rivals mods from GameBanana too, no account needed
+- Old mods: mods packed for an older version of the game get a red OLD tag, so you can tell which ones the game's updates stopped loading
+- Game open: installing, enabling or deleting a mod while Marvel Rivals is running offers to close the game first, then carries on by itself
+
+## Redesigns
+- Mod Store: the Nexus Store is now the Mod Store, and its header lets you choose between Nexus Mods and GameBanana (your choice is remembered)
+
+## Improvements
+- Files in use: the error now says which file is busy and reminds you to close Marvel Rivals if it's open
+
 1.0.0 [RIVALS FORGE!]
 ## Additions
 - Nexus Store: browse, search and install Marvel Rivals mods from Nexus Mods without leaving the manager

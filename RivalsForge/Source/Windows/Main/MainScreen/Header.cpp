@@ -20,7 +20,8 @@
 // The header (was Grid.Row="1": "Installed Mods" and SummaryLabel, "＋ Add Mod"): two tabs in big
 // condensed italic capitals, the installed mods and the store, a red slash under the one shown;
 // under them the summary as three counters (mods, enabled, heroes) that count up to their numbers
-// — or "Game not found" in red — or, in the store, the Nexus Mods account. On the right
+// — or "Game not found" in red — or, in the store, which store it browses (Nexus Mods /
+// GameBanana) and, for Nexus, the account. On the right
 // the language flag and "＋ Add Mod", a light crossing it now and then. Everything comes in once at
 // startup.
 namespace RivalsForge::Main::Header {
@@ -188,6 +189,43 @@ void BypassChip(UI::Ui& ui, MainWindow& main, float x, float y, float h) {
     if (it.clicked) main.Bypass().Show(false);
 }
 
+// Which store the Mod Store browses: a slanted chip per store, the chosen one lit with a highlight
+// sliding between them; returns their width
+float SourceSwitch(UI::Ui& ui, MainWindow& main, float x, float y, float h) {
+    namespace Store = Services::Store;
+    StoreView& store = main.Store();
+    const Store::Source sources[] = { Store::Source::Nexus, Store::Source::GameBanana };
+    TextStyle t = Kit::Display(12.f, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+    t.align = HAlign::Center;
+    t.valign = VAlign::Center;
+    float widths[2], chosenX = x, cx = x;
+    for (int i = 0; i < 2; ++i) {
+        widths[i] = std::ceil(ui.g.Measure(Kit::Upper(Store::SourceName(sources[i])), t).w) + 30.f;
+        if (sources[i] == store.GetSource()) chosenX = cx;
+        cx += widths[i] + 3.f;
+    }
+    const float chosenW = widths[store.GetSource() == Store::Source::GameBanana ? 1 : 0];
+    const float hx = ui.Animate(ui.MakeId("hdr-source-x"), chosenX, 18.f);
+    const float hw = ui.Animate(ui.MakeId("hdr-source-w"), chosenW, 18.f);
+    if (std::fabs(hx - chosenX) > 0.3f || std::fabs(hw - chosenW) > 0.3f) ui.KeepAnimating();
+    Kit::FillSlant(ui, { hx, y, hw, h }, Kit::Palette::Accent, 7.f);
+    cx = x;
+    for (int i = 0; i < 2; ++i) {
+        const Rect r{ cx, y, widths[i], h };
+        const bool on = sources[i] == store.GetSource();
+        const UI::Id id = ui.MakeId("hdr-source", i);
+        const UI::Interaction it = ui.Interact(id, r, !store.Busy());
+        if (it.hovered) ui.SetCursor(IDC_HAND);
+        const float hover = M::Motion::Hover(ui, id, it.hovered, it.held).hover;
+        if (!on) Kit::FillSlant(ui, r, Lerp(Kit::Palette::Ghost, Kit::Palette::GhostHover, hover), 7.f);
+        ui.g.Text(Kit::Upper(Store::SourceName(sources[i])), r, on ? Colors::White : Lerp(Kit::Palette::TextDim, Kit::Palette::Strong, hover), t);
+        ui.Tooltip(id, Loc::Fmt("store_source_tooltip", Store::SourceName(sources[i])));
+        if (it.clicked && !on) store.SetSource(sources[i]);
+        cx += widths[i] + 3.f;
+    }
+    return cx - 3.f - x;
+}
+
 // The Nexus account in a slanted chip: who's signed in (and Premium), or "Sign in"; opens its card;
 // returns its width
 float AccountChip(UI::Ui& ui, MainWindow& main, Rect r) {
@@ -315,11 +353,12 @@ void Draw(UI::Ui& ui, MainWindow& main, const Rect& header) {
         Kit::FillSlant(ui, { sx + 2.f, inner.y - 4.f + titleH - 2.f, sw * grow, 4.f }, Kit::Palette::Accent, 3.f);
     }
 
-    // In the store: the Nexus account instead of the counters
+    // In the store: which store, and the Nexus account, instead of the counters
     if (state.view == MainState::View::Store) {
         M::Motion::Enter enter(ui, Pop(ui, 1), 8.f);
-        const float w = AccountChip(ui, main, { inner.x, inner.B() - 28.f, 0.f, 28.f });
-        BypassChip(ui, main, inner.x + w + 8.f, inner.B() - 28.f, 28.f);
+        float x = inner.x + SourceSwitch(ui, main, inner.x, inner.B() - 28.f, 28.f) + 12.f;
+        if (main.Store().GetSource() == Services::Store::Source::Nexus) x += AccountChip(ui, main, { x, inner.B() - 28.f, 0.f, 28.f }) + 8.f;
+        BypassChip(ui, main, x, inner.B() - 28.f, 28.f);
         return;
     }
 

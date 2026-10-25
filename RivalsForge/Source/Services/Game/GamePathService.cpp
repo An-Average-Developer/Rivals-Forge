@@ -212,6 +212,26 @@ bool Launch(const Installation& installation, std::wstring& error) {
     return true;
 }
 
+std::vector<uint32_t> RunningProcesses(const std::vector<Installation>& installations) {
+    // By name first; then whatever runs from an installation's folder (CrashReporter and the like)
+    static const wchar_t* const kNames[] = { L"Marvel-Win64-Shipping", L"MarvelRivals_Launcher", L"MarvelRivals" };
+    const std::vector<Process::Info> processes = Process::List();
+    std::vector<uint32_t> pids;
+    for (const wchar_t* name : kNames)
+        for (const uint32_t pid : Process::FindByName(processes, name)) pids.push_back(pid);
+    for (const auto& p : processes) {
+        if (std::find(pids.begin(), pids.end(), p.pid) != pids.end() || p.pid == Process::CurrentPid()) continue;
+        const std::wstring image = Process::ImagePath(p.pid);
+        if (image.empty()) continue;
+        for (const auto& installation : installations)
+            if (!installation.root.empty() && Text::StartsWith(image, installation.root + L"\\", true)) {
+                pids.push_back(p.pid);
+                break;
+            }
+    }
+    return pids;
+}
+
 std::optional<std::wstring> ResolvePaksFromSelection(std::wstring selectedFolder) {
     if (IsNullOrWhiteSpace(selectedFolder)) return std::nullopt;
     while (!selectedFolder.empty() && (selectedFolder.back() == L'\\' || selectedFolder.back() == L'/')) selectedFolder.pop_back();

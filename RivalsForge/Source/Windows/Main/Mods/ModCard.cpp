@@ -46,6 +46,7 @@ TypeLook LookOf(unsigned type) {
         case Types::VFX: return { Hex(0xF2703C), "mod_type_vfx" };
         case Types::Audio: return { Hex(0x4CC27A), "mod_type_audio" };
         case Types::Video: return { Hex(0x5B8DEF), "mod_type_video" };
+        case Types::Outdated: return { Kit::Palette::Danger, "mod_outdated" };
         default: return { Hex(0xD94CC0), "mod_type_ui" };
     }
 }
@@ -114,7 +115,8 @@ void ModsView::ModCard(UI::Ui& ui, const Rect& r, const ModRow& row, bool intera
     ui.g.PopLayer();
 
     // What kind of mod it is: a tag per kind, right to left before the buttons, as far as they fit
-    // (fading in once the ZIP has been read)
+    // (fading in once the ZIP has been read); a mod packed the old way has a solid red OLD tag of
+    // its own, nearest the buttons so it's always shown
     if (const unsigned types = state.TypesOf(mod)) {
         const float shown = ui.Tween(ui.MakeId("mod-types", key), 1.f, 0.3f, 0.f);
         if (shown < 1.f) ui.KeepAnimating();
@@ -126,15 +128,17 @@ void ModsView::ModCard(UI::Ui& ui, const Rect& r, const ModRow& row, bool intera
         std::vector<unsigned> kinds;
         for (unsigned type : Types::kAllTypes)
             if (types & type) kinds.push_back(type);
+        if (types & Types::Outdated) kinds.push_back(Types::Outdated);
         for (auto it = kinds.rbegin(); it != kinds.rend(); ++it) {
+            const bool old = *it == Types::Outdated;
             const TypeLook look = LookOf(*it);
             const std::wstring label = Kit::Upper(Loc::Get(look.key));
             const float tw = std::ceil(ui.g.Measure(label, t).w) + 22.f;
             const Rect tag{ right - 6.f - tw, inner.CY() - 11.f, tw, 22.f };
             if (tag.x < minLeft) break;
-            Kit::FillSlant(ui, tag, look.color.Fade(Kit::IsLight() ? 0.16f : 0.14f), 6.f);
-            Kit::StrokeSlant(ui, tag, look.color.Fade(0.55f), 1.f, 6.f);
-            ui.g.Text(label, tag.Offset(1.f, 0.f), TagText(look.color), t);
+            Kit::FillSlant(ui, tag, old ? look.color : look.color.Fade(Kit::IsLight() ? 0.16f : 0.14f), 6.f);
+            Kit::StrokeSlant(ui, tag, look.color.Fade(old ? 1.f : 0.55f), 1.f, 6.f);
+            ui.g.Text(label, tag.Offset(1.f, 0.f), old ? Colors::White : TagText(look.color), t);
             const UI::Id tagId = UI::HashId(ui.MakeId("mod-type", key), static_cast<int64_t>(*it));
             ui.Interact(tagId, tag, interactive, false);
             ui.Tooltip(tagId, Loc::Get(std::string(look.key) + "_tooltip"));

@@ -55,6 +55,11 @@ Services::Mods::Progress ModsView::ProgressTo(float from, float span) {
 
 void ModsView::ToggleMod(const std::wstring& modId) {
     if (Busy()) return;
+    WhenGameClosed([this, modId] { DoToggle(modId); });
+}
+
+void ModsView::DoToggle(const std::wstring& modId) {
+    if (Busy()) return;
     const Models::Mod* mod = state.Service().FindMod(modId);
     if (!mod) return;
     const std::wstring name = mod->name;
@@ -167,17 +172,25 @@ void ModsView::DeleteMod(const std::wstring& modId) {
     // Only out of the list, or the files too
     main.Delete().Show(name, mod->isEnabled, [this, modId, name](DeleteOverlay::Choice choice) {
         if (choice == DeleteOverlay::Choice::Cancel || Busy()) return;
-        try {
-            if (choice == DeleteOverlay::Choice::ListOnly) {
+        if (choice == DeleteOverlay::Choice::ListOnly) {
+            try {
                 state.Service().ForgetMod(modId);
                 Done(Loc::Fmt("status_mod_forgotten", name));
-            } else {
+            } catch (const ModError& e) {
+                ShowError("delete_failed", e.Message());
+            }
+            return;
+        }
+        // Its files come out of Paks: not while the game has them open
+        WhenGameClosed([this, modId, name] {
+            if (Busy()) return;
+            try {
                 state.Service().DeleteMod(modId);
                 Done(Loc::Fmt("status_mod_deleted", name));
+            } catch (const ModError& e) {
+                ShowError("delete_failed", e.Message());
             }
-        } catch (const ModError& e) {
-            ShowError("delete_failed", e.Message());
-        }
+        });
     });
 }
 

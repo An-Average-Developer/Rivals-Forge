@@ -10,6 +10,16 @@ namespace RivalsForge::Services::Changelog {
 
 const std::vector<Entry>& Entries() {
     static const std::vector<Entry> entries = {
+        { L"1.0.1", L"", {
+            L"## Additions",
+            L"- GameBanana: browse, search and install Marvel Rivals mods from GameBanana too, no account needed",
+            L"- Old mods: mods packed for an older version of the game get a red OLD tag, so you can tell which ones the game's updates stopped loading",
+            L"- Game open: installing, enabling or deleting a mod while Marvel Rivals is running offers to close the game first, then carries on by itself",
+            L"## Redesigns",
+            L"- Mod Store: the Nexus Store is now the Mod Store, and its header lets you choose between Nexus Mods and GameBanana (your choice is remembered)",
+            L"## Improvements",
+            L"- Files in use: the error now says which file is busy and reminds you to close Marvel Rivals if it's open",
+        } },
         { L"1.0.0", L"[RIVALS FORGE!]", {
             L"## Additions",
             L"- Nexus Store: browse, search and install Marvel Rivals mods from Nexus Mods without leaving the manager",

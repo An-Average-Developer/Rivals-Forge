@@ -7,6 +7,7 @@
 #include "Core/Text.h"
 #include "Core/Time.h"
 #include "Localization/Localization.h"
+#include "Services/Store/GameBanana.h"
 #include "UI/Material/Motion.h"
 #include "UI/Widgets/ScrollArea.h"
 #include "Windows/Main/MainWindow.h"
@@ -68,8 +69,9 @@ void StoreModOverlay::Load() {
         std::optional<std::wstring> error;
     };
     Async::Run(
-        [id = mod.id]() -> Result {
+        [id = mod.id, from = mod.source]() -> Result {
             try {
+                if (from == Store::Source::GameBanana) return { Store::GameBanana::FetchDetails(id), std::nullopt };
                 return { Store::FetchDetails(id), std::nullopt };
             } catch (const Store::Error& e) {
                 return { {}, e.Message() };
@@ -153,8 +155,10 @@ void StoreModOverlay::Description(UI::Ui& ui, const Rect& r) {
         ui.g.Text(c, { x + 28.f + vw, r.y + 1.f, cw + 2.f, 28.f }, Kit::Palette::TextDim, cap);
         x += 28.f + vw + cw + 22.f;
     };
-    stat(Kit::Glyph::Heart, Kit::Palette::Accent, StoreView::Number(mod.endorsements, true), Loc::Get("store_endorsements"));
+    const bool banana = mod.source == Store::Source::GameBanana;
+    stat(Kit::Glyph::Heart, Kit::Palette::Accent, StoreView::Number(mod.endorsements, true), Loc::Get(banana ? "store_likes" : "store_endorsements"));
     stat(Kit::Glyph::Download, Kit::Palette::Info, StoreView::Number(mod.downloads, true), Loc::Get("store_downloads"));
+    if (banana) stat(Kit::Glyph::Eye, Kit::Palette::TextDim, StoreView::Number(mod.views, true), Loc::Get("store_views"));
     if (!mod.updatedAt.empty()) stat(Kit::Glyph::Pencil, Kit::Palette::Gold, DateOf(mod.updatedAt), Loc::Get("store_updated"));
 
     const Rect body{ r.x, r.y + 40.f, r.w, r.h - 40.f };
@@ -199,12 +203,13 @@ void StoreModOverlay::Files(UI::Ui& ui, const Rect& r) {
     ui.g.Text(Kit::Upper(Loc::Get("store_files")), { r.x, r.y, r.w, 22.f }, Kit::Palette::TextDim, head);
     float y = r.y + 30.f;
 
-    // What the account means for downloading
+    // What the account means for downloading (GameBanana needs none)
     const StoreView::Account& account = store.GetAccount();
+    const bool banana = mod.source == Store::Source::GameBanana;
     std::wstring note;
     Color noteColor = Kit::Palette::Gold;
-    if (account.key.empty() || (!account.info && !account.checking)) note = Loc::Get("store_note_no_account");
-    else if (account.info && !account.info->premium) note = Loc::Get("store_note_free");
+    if (!banana && (account.key.empty() || (!account.info && !account.checking))) note = Loc::Get("store_note_no_account");
+    else if (!banana && account.info && !account.info->premium) note = Loc::Get("store_note_free");
     if (!note.empty()) {
         TextStyle t = Kit::Style(11.5f, DWRITE_FONT_WEIGHT_NORMAL, true);
         const float h = ui.g.Measure(note, t, r.w - 34.f).h + 16.f;
@@ -223,7 +228,7 @@ void StoreModOverlay::Files(UI::Ui& ui, const Rect& r) {
     if (!details) return;
     UI::ScrollArea scroll(ui, ui.MakeId("smod-files"), { r.x, y, r.w, r.B() - y });
     const float w = scroll.ContentWidth() - 8.f;
-    const Models::Mod* installed = store.Installed(mod.id);
+    const Models::Mod* installed = store.Installed(mod);
     float fy = y;
     if (details->files.empty()) {
         TextStyle t = Kit::Style(12.f, DWRITE_FONT_WEIGHT_NORMAL, true);
@@ -269,7 +274,7 @@ void StoreModOverlay::Files(UI::Ui& ui, const Rect& r) {
             cy += dh + 8.f;
         }
         // Install (and "Installed" for the version here)
-        const bool here = installed && !file.version.empty() && installed->nexusVersion == file.version;
+        const bool here = installed && (banana ? installed->gameBananaFile == file.id : !file.version.empty() && installed->nexusVersion == file.version);
         Kit::ButtonStyle style = here ? Kit::Ghost() : Kit::Primary();
         style.sheen = false;
         style.fontSize = 13.f;
@@ -279,7 +284,7 @@ void StoreModOverlay::Files(UI::Ui& ui, const Rect& r) {
         const UI::Id id = ui.MakeId("smod-install", file.id);
         if (Kit::Button(ui, id, { inner.R() - bw, cy, bw, kInstallH }, label, style, !store.Busy())) {
             store.Install(mod, file);
-            if (account.info && account.info->premium) Close();
+            if (banana || (account.info && account.info->premium)) Close();
         }
         if (here) {
             TextStyle ok = Kit::Display(11.f, DWRITE_FONT_WEIGHT_BOLD);
@@ -310,11 +315,11 @@ void StoreModOverlay::DrawCard(UI::Ui& ui, const Rect& card) {
         ui.g.FillRect({ body.R() - kFilesW - 12.f, body.y, 1.f, body.h }, Kit::Palette::Line);
         Files(ui, { body.R() - kFilesW, body.y, kFilesW, body.h });
     }
-    // View on Nexus / Close
+    // View on Nexus / GameBanana, Close
     M::Motion::Enter enter(ui, Reveal(ui, 3));
     const float fy = card.B() - kPad - kFooterH;
     const Kit::ButtonStyle ghost = Kit::DialogButton(false);
-    const std::wstring site = Loc::Get("store_view_site");
+    const std::wstring site = Loc::Fmt("store_view_site", Store::SourceName(mod.source));
     const float sw = Kit::ButtonWidth(ui, site, ghost) + 20.f;
     const Rect siteR{ card.x + kPad, fy, sw, kFooterH };
     if (Kit::Button(ui, ui.MakeId("smod-site"), siteR, L"   " + site, ghost)) Process::OpenUrl(mod.PageUrl());

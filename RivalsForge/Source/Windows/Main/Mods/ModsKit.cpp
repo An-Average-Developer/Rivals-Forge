@@ -357,6 +357,18 @@ void DrawGlyph(UI::Ui& ui, Glyph glyph, float cx, float cy, float size, Color co
             poly({ P(-0.24f, -0.08f), P(0.f, 0.16f), P(0.24f, -0.08f) }, false);
             line(-0.38f, 0.38f, 0.38f, 0.38f);
             break;
+        case Glyph::Eye: {
+            // An almond (two arcs meeting at the corners) and its pupil
+            auto geometry = Geometry::Build([&](ID2D1GeometrySink* sink) {
+                sink->BeginFigure(P(-0.42f, 0.f), D2D1_FIGURE_BEGIN_HOLLOW);
+                sink->AddBezier(D2D1::BezierSegment(P(-0.2f, -0.34f), P(0.2f, -0.34f), P(0.42f, 0.f)));
+                sink->AddBezier(D2D1::BezierSegment(P(0.2f, 0.34f), P(-0.2f, 0.34f), P(-0.42f, 0.f)));
+                sink->EndFigure(D2D1_FIGURE_END_CLOSED);
+            });
+            ui.g.StrokeGeometry(geometry.Get(), color, w, true);
+            ui.g.FillEllipse(cx, cy, 0.11f * s, 0.11f * s, color);
+            break;
+        }
         case Glyph::Search:
             ui.g.StrokeEllipse(cx - 0.08f * s, cy - 0.08f * s, 0.26f * s, 0.26f * s, color, w);
             line(0.12f, 0.12f, 0.4f, 0.4f);

@@ -77,6 +77,14 @@ void ModsView::AddMod() {
 
 void ModsView::AddFiles(std::vector<std::wstring> files, const AddOptions& options) {
     if (Busy() || files.empty()) return;
+    // Installing writes to Paks: not while the game has it open (a download given up is removed)
+    WhenGameClosed([this, files, options] { StartAdd(files, options); }, [options] {
+        if (options.downloaded && !options.folder.empty()) Files::DeleteDirectory(options.folder);
+    });
+}
+
+void ModsView::StartAdd(const std::vector<std::wstring>& files, const AddOptions& options) {
+    if (Busy()) return;
     auto job = std::make_shared<AddJob>();
     job->options = options;
     for (const auto& file : files)
@@ -286,6 +294,8 @@ void ModsView::InstallNext(std::shared_ptr<AddJob> job) {
     }
     mod.nexusId = job->options.nexusId;   // the store marks it installed (and sees updates)
     mod.nexusVersion = job->options.nexusVersion;
+    mod.gameBananaId = job->options.gameBananaId;
+    mod.gameBananaFile = job->options.gameBananaFile;
     struct Result {
         Models::Mod mod;
         std::optional<std::wstring> error;

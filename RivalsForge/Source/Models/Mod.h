@@ -24,6 +24,10 @@ struct Mod {
     // written only for those), 0 = not from the store
     long long nexusId = 0;
     std::wstring nexusVersion;
+    // The same for GameBanana ("GameBananaModId" / "GameBananaFileId"): its files have no version,
+    // so the file installed says which one is here
+    long long gameBananaId = 0;
+    long long gameBananaFile = 0;
     // New too: a mod of loose game files instead of a .pak ("Target" / "TargetStrip", written only
     // for those): the folder under Content its files replace ("Marvel\MoviesBink\Movies\MarvelLogo";
     // "" = an ordinary mod, its files in Paks), and the folder inside its ZIP they're under
