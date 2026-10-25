@@ -1,0 +1,11 @@
+1.0.0
+## Additions
+Nexus Store: browse, search and install Marvel Rivals mods from Nexus Mods without leaving the manager
+Heroes: mods are grouped by hero, with a strip on top to show one hero's mods
+Steam and Epic Games: every installation is found and you can move your mods between them
+Play: launch the game from the header
+UTOC Signature Bypass Patch: the header shows whether it's installed and helps you install it
+Themes: switch between the dark and the light theme with the sun / moon button in the header
+Updates: the manager checks GitHub at startup and installs new versions by itself
+Changelog: every version and its changes, inside the manager
+Languages: English, Spanish, French and Italian

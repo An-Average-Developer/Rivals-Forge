@@ -1,0 +1,11 @@
+1.0.0
+## Novedades
+Tienda Nexus: explora, busca e instala mods de Marvel Rivals desde Nexus Mods sin salir del gestor
+Héroes: los mods se agrupan por héroe, con una tira arriba para ver solo los mods de uno
+Steam y Epic Games: se detectan todas las instalaciones y puedes mover tus mods entre ellas
+Jugar: abre el juego desde la cabecera
+UTOC Signature Bypass Patch: la cabecera muestra si está instalado y te ayuda a instalarlo
+Temas: cambia entre el tema oscuro y el claro con el botón del sol / la luna de la cabecera
+Actualizaciones: el gestor comprueba GitHub al abrirse e instala las nuevas versiones solo
+Registro de cambios: todas las versiones y sus cambios, dentro del gestor
+Idiomas: inglés, español, francés e italiano
