@@ -28,7 +28,9 @@
 
 ## 🔄 Updates
 
-The app reads `version.txt` and `changelog.txt` from this repository and downloads `RivalsForge.exe` from the latest release. To publish a new version: update both files and attach the new `RivalsForge.exe` to a release.
+The app reads `version.txt` and `changelog.txt` from this repository. The automatic update downloads `RivalsForgev<x-y-z>.zip` from the latest release (e.g. `RivalsForgev1-0-0.zip` for 1.0.0); the manual update downloads [`RivalsForge.exe`](https://github.com/An-Average-Developer/Rivals-Forge/releases/latest/download/RivalsForge.exe) from the latest release.
+
+To publish a new version: update both files and attach **both** `RivalsForgev<x-y-z>.zip` (with `RivalsForge.exe` inside) and `RivalsForge.exe` to a new release.
 
 ---
 
